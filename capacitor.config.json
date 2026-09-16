@@ -1,0 +1,15 @@
+{
+  "appId": "com.vokalis.app",
+  "appName": "Vokalis",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#8b5cf6",
+      "sound": "alarm_sound.wav"
+    }
+  }
+}

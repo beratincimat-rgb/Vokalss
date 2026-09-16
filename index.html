@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Vokalis</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0c14">
+<style>
+  :root{
+    --bg:#0b0c14;
+    --bg-elev:#131523;
+    --bg-card:#161829;
+    --border:#242640;
+    --text:#eef0fb;
+    --text-dim:#9195b5;
+    --purple:#8b5cf6;
+    --purple-dim:#5b3fa0;
+    --cyan:#22d3ee;
+    --green:#34d399;
+    --red:#f87171;
+    --amber:#fbbf24;
+    --radius:18px;
+    --radius-sm:12px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+    overscroll-behavior:none;
+  }
+  #app{max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative;}
+
+  header.topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px;
+    position:sticky; top:0; background:linear-gradient(180deg,var(--bg) 80%,transparent);
+    z-index:10;
+  }
+  .brand{display:flex; align-items:center; gap:8px;}
+  .brand-dot{width:8px;height:8px;border-radius:50%;background:var(--green); box-shadow:0 0 8px var(--green);}
+  .brand h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.2px;}
+  .brand span{font-size:11px; color:var(--text-dim); display:block; margin-top:1px;}
+  .avatar-btn{
+    width:38px;height:38px;border-radius:50%;overflow:hidden;border:2px solid var(--border);
+    background:var(--purple-dim); display:flex;align-items:center;justify-content:center; flex-shrink:0; cursor:pointer;
+  }
+  .avatar-btn img{width:100%;height:100%;object-fit:cover;}
+
+  main{flex:1; padding:0 18px 110px; overflow-y:auto;}
+  .view{display:none; animation:fade .18s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+  .card{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; margin-bottom:14px;
+  }
+  .card h3{margin:0 0 4px; font-size:15px;}
+  .muted{color:var(--text-dim); font-size:13px;}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .pill{
+    font-size:11px; padding:4px 9px; border-radius:99px; background:rgba(139,92,246,.15); color:var(--purple);
+    border:1px solid rgba(139,92,246,.3); white-space:nowrap;
+  }
+  .pill.green{background:rgba(52,211,153,.13); color:var(--green); border-color:rgba(52,211,153,.3);}
+  .pill.red{background:rgba(248,113,113,.14); color:var(--red); border-color:rgba(248,113,113,.3);}
+
+  button{font-family:inherit;}
+  .btn{
+    border:none; border-radius:var(--radius-sm); padding:12px 16px; font-size:14px; font-weight:600;
+    cursor:pointer; color:var(--text); background:var(--bg-elev); border:1px solid var(--border);
+  }
+  .btn-primary{background:linear-gradient(135deg,var(--purple),var(--cyan)); color:#0b0c14;}
+  .btn-danger{background:var(--red); color:#2a0a0a;}
+  .btn-block{width:100%;}
+  .btn-sm{padding:8px 12px; font-size:12.5px; border-radius:10px;}
+  input,select{
+    width:100%; background:var(--bg-elev); border:1px solid var(--border); color:var(--text);
+    padding:11px 12px; border-radius:10px; font-size:14px; margin-top:6px;
+  }
+  label{font-size:12.5px; color:var(--text-dim); display:block; margin-top:10px;}
+
+  /* ---- Bugün / zaman tüneli ---- */
+  .quick-hours{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:14px;}
+  .quick-hours button{flex-shrink:0;}
+  .mic-card{
+    text-align:center; padding:26px 16px; border:1px solid var(--border); border-radius:var(--radius);
+    background:radial-gradient(circle at 50% 0%, rgba(139,92,246,.15), var(--bg-card));
+    margin-bottom:16px;
+  }
+  .mic-btn{
+    width:76px;height:76px; border-radius:50%; border:none; margin:0 auto 12px;
+    background:linear-gradient(135deg,var(--purple),var(--cyan)); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; box-shadow:0 0 0 0 rgba(139,92,246,.5); transition:box-shadow .3s;
+  }
+  .mic-btn.listening{animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(139,92,246,.5);}70%{box-shadow:0 0 0 22px rgba(139,92,246,0);}100%{box-shadow:0 0 0 0 rgba(139,92,246,0);}}
+  .mic-btn svg{width:28px;height:28px;}
+  .timeline{position:relative; padding-left:18px; border-left:2px solid var(--border); margin-top:6px;}
+  .tl-item{position:relative; margin-bottom:16px;}
+  .tl-item::before{
+    content:''; position:absolute; left:-24px; top:4px; width:10px; height:10px; border-radius:50%;
+    background:var(--cyan); border:2px solid var(--bg);
+  }
+  .tl-item.done::before{background:var(--green);}
+  .tl-time{font-size:12px; color:var(--cyan); font-weight:700; margin-bottom:2px;}
+  .tl-item.done .tl-time{color:var(--text-dim);}
+  .tl-title{font-size:14.5px; font-weight:600;}
+  .tl-item.done .tl-title{text-decoration:line-through; color:var(--text-dim);}
+  .tl-note{font-size:12.5px; color:var(--text-dim); margin-top:2px;}
+  .tl-actions{display:flex; gap:8px; margin-top:8px;}
+
+  /* ---- Faturalar ---- */
+  .bill-card .row.top{margin-bottom:8px;}
+  .bill-amount{font-size:20px; font-weight:800;}
+  .toggle{
+    width:44px; height:26px; border-radius:99px; background:var(--bg-elev); border:1px solid var(--border);
+    position:relative; cursor:pointer; flex-shrink:0;
+  }
+  .toggle.on{background:linear-gradient(135deg,var(--purple),var(--cyan)); border-color:transparent;}
+  .toggle::after{
+    content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%;
+    background:#fff; transition:left .18s;
+  }
+  .toggle.on::after{left:20px;}
+  .tone-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px;}
+  .tone-opt{
+    border:1px solid var(--border); border-radius:12px; padding:8px 4px; text-align:center; font-size:11px;
+    background:var(--bg-elev); cursor:pointer; color:var(--text-dim);
+  }
+  .tone-opt.selected{border-color:var(--purple); color:var(--purple); background:rgba(139,92,246,.1);}
+
+  /* ---- Asistan izin ---- */
+  .perm-banner{
+    border:1px solid rgba(251,191,36,.35); background:rgba(251,191,36,.08); border-radius:var(--radius);
+    padding:14px; margin-bottom:14px;
+  }
+  .perm-banner.ok{border-color:rgba(52,211,153,.35); background:rgba(52,211,153,.08);}
+  .wave{display:flex; align-items:flex-end; gap:3px; height:40px; justify-content:center; margin:14px 0;}
+  .wave span{width:4px; background:linear-gradient(180deg,var(--cyan),var(--purple)); border-radius:2px; animation:wv 1s infinite ease-in-out;}
+  @keyframes wv{0%,100%{height:6px;}50%{height:38px;}}
+
+  /* ---- Arşiv ---- */
+  .seg{display:flex; background:var(--bg-elev); border-radius:12px; padding:4px; margin-bottom:14px; border:1px solid var(--border);}
+  .seg button{flex:1; background:none; border:none; color:var(--text-dim); padding:9px; border-radius:9px; font-size:13px; font-weight:600;}
+  .seg button.active{background:var(--purple); color:#fff;}
+
+  /* ---- Profil ---- */
+  .profile-hero{text-align:center; padding:8px 0 18px;}
+  .profile-avatar{width:84px;height:84px;border-radius:50%; margin:0 auto 10px; overflow:hidden; border:2px solid var(--purple); position:relative; background:var(--bg-elev);}
+  .profile-avatar img{width:100%;height:100%;object-fit:cover;}
+  .perm-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border);}
+  .perm-row:last-child{border-bottom:none;}
+  .perm-row .icon{width:34px;height:34px;border-radius:10px; background:var(--bg-elev); display:flex; align-items:center; justify-content:center; margin-right:10px; flex-shrink:0;}
+
+  nav.tabbar{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px;
+    background:rgba(19,21,35,.92); backdrop-filter:blur(14px); border-top:1px solid var(--border);
+    display:flex; padding:8px 10px calc(env(safe-area-inset-bottom,0px) + 8px);
+    z-index:20;
+  }
+  nav.tabbar button{
+    flex:1; background:none; border:none; color:var(--text-dim); display:flex; flex-direction:column; align-items:center;
+    gap:3px; font-size:10.5px; padding:6px 0; cursor:pointer;
+  }
+  nav.tabbar button.active{color:var(--purple);}
+  nav.tabbar button svg{width:22px;height:22px;}
+
+  .modal-bg{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:22px 22px 0 0; width:100%; max-width:480px;
+    padding:20px 18px calc(env(safe-area-inset-bottom,0px) + 20px); max-height:85vh; overflow-y:auto;
+  }
+  .modal h2{margin:0 0 12px; font-size:17px;}
+  .modal-handle{width:36px;height:4px;background:var(--border); border-radius:99px; margin:0 auto 14px;}
+
+  /* Kilit ekranı alarm overlay */
+  .lock-overlay{
+    position:fixed; inset:0; background:#08060f; z-index:100; display:none; flex-direction:column;
+    align-items:center; justify-content:flex-start; padding:calc(env(safe-area-inset-top,0px) + 40px) 24px 40px; text-align:center;
+    max-width:480px; margin:0 auto;
+  }
+  .lock-overlay.show{display:flex;}
+  .lock-time{font-size:52px; font-weight:800; letter-spacing:1px;}
+  .lock-date{color:var(--text-dim); margin-bottom:26px;}
+  .siren-badge{
+    background:rgba(248,113,113,.15); border:1px solid rgba(248,113,113,.4); color:var(--red);
+    padding:8px 14px; border-radius:99px; font-size:12.5px; font-weight:700; margin-bottom:22px;
+    animation:blink 1s infinite;
+  }
+  @keyframes blink{50%{opacity:.4;}}
+  .lock-amount{font-size:36px; font-weight:800; margin:6px 0;}
+  .lock-actions{width:100%; margin-top:auto; display:flex; flex-direction:column; gap:10px;}
+
+  .empty{text-align:center; padding:40px 10px; color:var(--text-dim);}
+  .fab-add{position:fixed; bottom:96px; right:calc(50% - 220px); background:var(--purple); border:none; width:52px;height:52px;border-radius:50%; display:flex;align-items:center;justify-content:center; box-shadow:0 6px 20px rgba(139,92,246,.5); z-index:15;}
+  @media (max-width:520px){ .fab-add{right:20px;} }
+  @media (prefers-color-scheme: light){ /* uygulama tasarım gereği koyu temada sabit kalır */ }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <div>
+        <h1>Vokalis</h1>
+        <span id="headerSub">Bugün</span>
+      </div>
+    </div>
+    <button class="avatar-btn" onclick="openProfile()">
+      <img id="avatarImg" src="" style="display:none">
+      <svg id="avatarPlaceholder" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eef0fb" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+    </button>
+  </header>
+
+  <main>
+
+    <!-- BUGÜN -->
+    <section class="view active" id="view-bugun">
+      <div class="row" style="margin-bottom:10px;">
+        <div>
+          <div style="font-weight:700; font-size:16px;" id="todayDateLabel">-</div>
+          <div class="muted" id="todayProgressLabel">-</div>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-bottom:6px;">Saat dilimine işlem ekle</div>
+      <div class="quick-hours" id="quickHours"></div>
+
+      <div class="mic-card">
+        <button class="mic-btn" id="micBtnHome" onclick="toggleListening()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0b0c14" stroke-width="2"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z"/><path d="M19 11a7 7 0 01-14 0M12 18v4"/></svg>
+        </button>
+        <div style="font-weight:700; font-size:14.5px;">Tek dokunuşla sesli hatırlatma ekle</div>
+        <div class="muted" id="micStatusText" style="margin-top:4px;">"12'ye dişçi randevusu koy" gibi söyle</div>
+      </div>
+
+      <div id="timelineWrap"></div>
+    </section>
+
+    <!-- FATURALAR -->
+    <section class="view" id="view-faturalar">
+      <div class="card" style="text-align:center;">
+        <div class="muted">Bu ay kalan ödeme</div>
+        <div class="bill-amount" id="totalDue">0 ₺</div>
+        <div class="muted" id="nextDueLabel">-</div>
+      </div>
+      <div class="row" style="margin-bottom:10px;">
+        <h3 style="margin:0;">Düzenli faturalar</h3>
+        <button class="btn btn-sm btn-primary" onclick="openBillModal()">+ Yeni</button>
+      </div>
+      <div id="billsWrap"></div>
+    </section>
+
+    <!-- ASİSTAN -->
+    <section class="view" id="view-asistan">
+      <div class="perm-banner" id="micPermBanner">
+        <div class="row" style="align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="font-weight:700; margin-bottom:4px;" id="micPermTitle">Mikrofon izni gerekli</div>
+            <div class="muted" id="micPermDesc">Sesle hatırlatıcı ekleyebilmek için mikrofon erişimine izin ver.</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" style="margin-top:12px;" id="micPermBtn" onclick="requestMicPermission()">İzin Ver & Etkinleştir</button>
+      </div>
+
+      <div class="card" style="text-align:center;">
+        <div class="wave" id="waveBig"></div>
+        <button class="mic-btn" style="margin-top:4px;" id="micBtnAssistant" onclick="toggleListening()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0b0c14" stroke-width="2"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z"/><path d="M19 11a7 7 0 01-14 0M12 18v4"/></svg>
+        </button>
+        <div style="font-weight:700; margin-top:8px;">Dokun ve konuş</div>
+        <div class="muted" id="transcriptBox" style="margin-top:8px; min-height:18px;">Örn: "Yarın saat 12'ye dişçi randevusu ekle"</div>
+      </div>
+
+      <div class="card">
+        <h3>Hızlı komutlar</h3>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <button class="btn" onclick="quickCommand('bill')">⚡ Elektrik faturasını öde</button>
+          <button class="btn" onclick="quickCommand('task')">🕒 Saat 15:30 diş randevusu ekle</button>
+          <button class="btn btn-danger" onclick="testAlarm()">🚨 Acil siren alarmını test et</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Alarm sesi seçimi</h3>
+        <div class="muted">Yeni eklenen hatırlatıcı ve faturalarda varsayılan olarak kullanılır.</div>
+        <div class="tone-grid" id="toneGridGlobal"></div>
+        <label>Kendi ses dosyanı yükle (mp3/wav)</label>
+        <input type="file" accept="audio/*" onchange="handleCustomTone(event)">
+      </div>
+    </section>
+
+    <!-- ARŞİV -->
+    <section class="view" id="view-arsiv">
+      <div class="seg">
+        <button class="active" onclick="setArchiveMonth(-1,this)">Geçen Ay</button>
+        <button onclick="setArchiveMonth(0,this)">Bu Ay</button>
+        <button onclick="setArchiveMonth(1,this)">Gelecek Ay</button>
+      </div>
+      <div class="card" id="archiveSummaryCard"></div>
+      <div class="card">
+        <h3>Dışa aktar</h3>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn btn-block" onclick="exportData('json')">JSON indir</button>
+          <button class="btn btn-block" onclick="exportData('csv')">CSV indir</button>
+        </div>
+      </div>
+      <h3>Kayıtlar</h3>
+      <div id="archiveList"></div>
+    </section>
+
+  </main>
+
+  <button class="fab-add" onclick="openTaskModal()" title="Görev ekle">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b0c14" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+
+  <nav class="tabbar">
+    <button class="active" data-tab="bugun" onclick="switchTab('bugun')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      Bugün
+    </button>
+    <button data-tab="faturalar" onclick="switchTab('faturalar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
+      Faturalar
+    </button>
+    <button data-tab="asistan" onclick="switchTab('asistan')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z"/><path d="M19 11a7 7 0 01-14 0M12 18v3"/></svg>
+      Asistan
+    </button>
+    <button data-tab="arsiv" onclick="switchTab('arsiv')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l1-3h16l1 3M4 7h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V7z"/><path d="M9 11h6"/></svg>
+      Arşiv
+    </button>
+  </nav>
+
+</div>
+
+<!-- Modallar -->
+<div class="modal-bg" id="modalTask">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Yeni görev / hatırlatıcı</h2>
+    <label>Başlık</label>
+    <input id="taskTitle" placeholder="Örn: Diş randevusu">
+    <label>Saat</label>
+    <input id="taskTime" type="time">
+    <label>Not (opsiyonel)</label>
+    <input id="taskNote" placeholder="Kısa not">
+    <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="saveTask()">Kaydet</button>
+    <button class="btn btn-block" style="margin-top:8px;" onclick="closeModal('modalTask')">Vazgeç</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBill">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Yeni düzenli fatura</h2>
+    <label>Ad</label>
+    <input id="billName" placeholder="Örn: Elektrik faturası">
+    <label>Tutar (₺)</label>
+    <input id="billAmount" type="number" placeholder="840">
+    <label>Ayın hangi günü tekrarlasın?</label>
+    <input id="billDay" type="number" min="1" max="28" placeholder="10">
+    <label>Alarm sesi</label>
+    <select id="billTone">
+      <option value="radar">Radar</option>
+      <option value="siren">Siren</option>
+      <option value="bell">Sakin Çan</option>
+      <option value="nature">Doğa Sesleri</option>
+    </select>
+    <div class="row" style="margin-top:14px;">
+      <span style="font-size:13.5px;">Ben kapatana kadar çalsın</span>
+      <div class="toggle on" id="billPersistToggle" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="saveBill()">Kaydet</button>
+    <button class="btn btn-block" style="margin-top:8px;" onclick="closeModal('modalBill')">Vazgeç</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalProfile">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="profile-hero">
+      <div class="profile-avatar">
+        <img id="profileAvatarImg" src="" style="display:none">
+      </div>
+      <div style="font-weight:700; font-size:16px;" id="profileName">Kullanıcı</div>
+      <input type="file" accept="image/*" id="avatarFile" style="display:none" onchange="handleAvatarUpload(event)">
+      <button class="btn btn-sm" style="margin-top:10px;" onclick="document.getElementById('avatarFile').click()">Fotoğraf ekle / değiştir</button>
+    </div>
+
+    <h3 style="margin-bottom:2px;">Uygulama içi izinler</h3>
+    <div class="perm-row">
+      <div class="row" style="flex:1;">
+        <span>Mikrofon</span>
+        <div class="toggle" id="permMicToggle" onclick="togglePerm('mic')"></div>
+      </div>
+    </div>
+    <div class="perm-row">
+      <div class="row" style="flex:1;">
+        <span>Bildirimler</span>
+        <div class="toggle" id="permNotifToggle" onclick="togglePerm('notif')"></div>
+      </div>
+    </div>
+    <div class="perm-row">
+      <div class="row" style="flex:1;">
+        <span>Kesintisiz alarm (kilit ekranı)</span>
+        <div class="toggle" id="permAlarmToggle" onclick="togglePerm('alarm')"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-block" style="margin-top:16px;" onclick="closeModal('modalProfile')">Kapat</button>
+  </div>
+</div>
+
+<!-- Kilit ekranı / kesintisiz alarm görünümü -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-time" id="lockClock">00:00</div>
+  <div class="lock-date" id="lockDate">-</div>
+  <div class="siren-badge">SİZ KAPATANA KADAR ÇALIYOR</div>
+  <div id="lockPayload">
+    <div class="muted" id="lockLabel">Hatırlatıcı</div>
+    <div class="lock-amount" id="lockAmount"></div>
+  </div>
+  <div class="lock-actions">
+    <button class="btn btn-primary btn-block" onclick="stopAlarm(true)">Kapat & Tamamlandı Olarak İşle</button>
+    <button class="btn btn-block" onclick="stopAlarm(false)">1 Saat Ertele</button>
+  </div>
+</div>
+
+<script>
+/* ============ NATIVE ALTYAPI TESPİTİ (Capacitor) ============ */
+const Native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const LN = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
+const ALARM_CHANNEL_ID = 'vokalis-alarms';
+
+async function initNativeAlarms(){
+  if(!Native || !LN) return; // tarayıcıda test ederken bu kısım pasif kalır, uygulama yine de çalışır
+  try{
+    await LN.createChannel({
+      id: ALARM_CHANNEL_ID,
+      name: 'Vokalis Alarmlar',
+      description: 'Fatura ve hatırlatıcı alarmları',
+      importance: 5,           // 5 = MAX: ekranı uyandırır, ses zorunlu çalar
+      sound: 'alarm_sound.wav',
+      visibility: 1,
+      vibration: true
+    });
+  }catch(e){ console.warn('Kanal oluşturulamadı', e); }
+
+  LN.addListener('localNotificationActionPerformed', (action)=>{
+    const extra = action.notification && action.notification.extra || {};
+    if(extra.kind === 'bill'){
+      const b = state.bills.find(x=>x.id===extra.billId);
+      if(b) triggerLockAlarm({label:b.name, amount:b.amount.toLocaleString('tr-TR')+' ₺', tone:b.tone, billId:b.id});
+    } else if(extra.kind === 'task'){
+      triggerLockAlarm({label: extra.title || 'Hatırlatıcı', amount:'', tone: state.defaultTone});
+    }
+  });
+
+  // uygulama kapalıyken/arka plandayken bildirim geldiği anda da (henüz dokunulmadan) çalsın
+  LN.addListener('localNotificationReceived', (n)=>{
+    const extra = n.extra || {};
+    if(extra.kind === 'bill' || extra.kind === 'task'){
+      // Uygulama ön plana geldiğinde otomatik kilit ekranını da göster
+      const b = extra.billId ? state.bills.find(x=>x.id===extra.billId) : null;
+      triggerLockAlarm({
+        label: b ? b.name : (extra.title||'Hatırlatıcı'),
+        amount: b ? b.amount.toLocaleString('tr-TR')+' ₺' : '',
+        tone: b ? b.tone : state.defaultTone,
+        billId: b ? b.id : null
+      });
+    }
+  });
+}
+
+function nextNotifId(){
+  state.notifSeq = (state.notifSeq||1000) + 1;
+  save();
+  return state.notifSeq;
+}
+
+/* Aylık faturayı, seçilen günde her ay tekrar edecek şekilde native alarma kaydeder.
+   Telefon kapalı/uygulama kapalı olsa bile Android bunu işletim sistemi seviyesinde tetikler. */
+async function scheduleBillNative(bill){
+  if(!Native || !LN) return;
+  if(bill.notifId){ try{ await LN.cancel({notifications:[{id:bill.notifId}]}); }catch(e){} }
+  const id = nextNotifId();
+  bill.notifId = id;
+  save();
+  const now = new Date();
+  let fireDate = new Date(now.getFullYear(), now.getMonth(), bill.day, 9, 0, 0);
+  if(fireDate < now) fireDate.setMonth(fireDate.getMonth()+1);
+  try{
+    await LN.schedule({ notifications:[{
+      id,
+      title: '💳 ' + bill.name,
+      body: bill.amount.toLocaleString('tr-TR') + ' ₺ ödeme günü geldi. Siz kapatana kadar hatırlatmaya devam eder.',
+      channelId: ALARM_CHANNEL_ID,
+      sound: 'alarm_sound.wav',
+      ongoing: true,
+      autoCancel: false,
+      schedule: { on: { day: bill.day, hour: 9, minute: 0 }, allowWhileIdle: true, repeats: true },
+      extra: { kind:'bill', billId: bill.id }
+    }]});
+  }catch(e){ console.warn('Fatura alarmı kurulamadı', e); }
+}
+async function cancelBillNative(bill){
+  if(!Native || !LN || !bill.notifId) return;
+  try{ await LN.cancel({notifications:[{id:bill.notifId}]}); }catch(e){}
+}
+
+/* Bugünkü görev/randevu için tek seferlik native hatırlatma (saatinde, uygulama kapalı olsa da) */
+async function scheduleTaskNative(task){
+  if(!Native || !LN) return;
+  const id = nextNotifId();
+  task.notifId = id;
+  save();
+  const [hh,mm] = task.time.split(':').map(Number);
+  const fireDate = new Date(); fireDate.setHours(hh, mm, 0, 0);
+  if(fireDate < new Date()) return; // geçmiş saate bildirim kurma
+  try{
+    await LN.schedule({ notifications:[{
+      id,
+      title: '⏰ ' + task.title,
+      body: task.note || 'Hatırlatıcı zamanı geldi',
+      channelId: ALARM_CHANNEL_ID,
+      sound: 'alarm_sound.wav',
+      schedule: { at: fireDate, allowWhileIdle: true },
+      extra: { kind:'task', title: task.title }
+    }]});
+  }catch(e){ console.warn('Görev alarmı kurulamadı', e); }
+}
+
+async function requestNativeNotifPermission(){
+  if(!Native || !LN) return false;
+  const r = await LN.requestPermissions();
+  return r.display === 'granted';
+}
+
+/* ============ VERİ KATMANI (localStorage) ============ */
+const DB_KEY = 'vokalis_state_v1';
+function loadState(){
+  const raw = localStorage.getItem(DB_KEY);
+  if(raw) return JSON.parse(raw);
+  return {
+    profile:{name:'Kullanıcı', avatar:null},
+    perms:{mic:false, notif:false, alarm:false},
+    tasks:[], // {id, title, time, note, date(YYYY-MM-DD), done}
+    bills:[], // {id, name, amount, day, tone, persist, paidMonths:['2026-09',...]}
+    archive:[], // {id, type, title, amount, date}
+    defaultTone:'radar',
+    customTone:null,
+    lastArchiveRun:null
+  };
+}
+let state = loadState();
+function save(){ localStorage.setItem(DB_KEY, JSON.stringify(state)); }
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function monthKey(d=new Date()){ return d.toISOString().slice(0,7); }
+
+/* ============ TAB YÖNETİMİ ============ */
+function switchTab(tab){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tabbar button[data-tab="'+tab+'"]').classList.add('active');
+  document.getElementById('headerSub').textContent = {bugun:'Bugün',faturalar:'Faturalar',asistan:'Sesli Asistan',arsiv:'Arşiv'}[tab];
+  if(tab==='arsiv') renderArchive();
+}
+
+/* ============ BUGÜN / ZAMAN TÜNELİ ============ */
+const quickHourList = [9,10,12,14,17,19];
+function renderQuickHours(){
+  const el = document.getElementById('quickHours');
+  el.innerHTML = quickHourList.map(h=>`<button class="btn btn-sm" onclick="quickAddHour(${h})">+${String(h).padStart(2,'0')}:00</button>`).join('');
+}
+function quickAddHour(h){
+  document.getElementById('taskTime').value = String(h).padStart(2,'0')+':00';
+  openTaskModal();
+}
+function renderToday(){
+  const dateLabel = new Date().toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
+  document.getElementById('todayDateLabel').textContent = dateLabel;
+  const todays = state.tasks.filter(t=>t.date===todayStr()).sort((a,b)=>a.time.localeCompare(b.time));
+  const doneCount = todays.filter(t=>t.done).length;
+  document.getElementById('todayProgressLabel').textContent = todays.length
+    ? `${doneCount}/${todays.length} tamamlandı`
+    : 'Bugün için görev yok';
+  const wrap = document.getElementById('timelineWrap');
+  if(!todays.length){
+    wrap.innerHTML = '<div class="empty">Henüz bir görev eklemedin.<br>Sağ alttaki + veya mikrofon ile ekleyebilirsin.</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="timeline">' + todays.map(t=>`
+    <div class="tl-item ${t.done?'done':''}">
+      <div class="tl-time">${t.time}</div>
+      <div class="tl-title">${escapeHtml(t.title)}</div>
+      ${t.note?`<div class="tl-note">${escapeHtml(t.note)}</div>`:''}
+      ${!t.done?`<div class="tl-actions">
+        <button class="btn btn-sm btn-primary" onclick="completeTask('${t.id}')">Tamamla</button>
+      </div>`:`<div class="tl-note">✅ Bugün tekrar çalmaz · gece 00:00'da arşive aktarılır</div>`}
+    </div>
+  `).join('') + '</div>';
+}
+function completeTask(id){
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+  t.done = true;
+  save();
+  renderToday();
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ============ GÖREV MODALI ============ */
+function openTaskModal(){ document.getElementById('modalTask').classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function saveTask(){
+  const title = document.getElementById('taskTitle').value.trim();
+  const time = document.getElementById('taskTime').value || '09:00';
+  const note = document.getElementById('taskNote').value.trim();
+  if(!title){ alert('Başlık gerekli'); return; }
+  const task = {id:'t'+Date.now(), title, time, note, date:todayStr(), done:false, notifId:null};
+  state.tasks.push(task);
+  save();
+  document.getElementById('taskTitle').value='';
+  document.getElementById('taskNote').value='';
+  closeModal('modalTask');
+  renderToday();
+  scheduleTaskNative(task);
+}
+
+/* ============ FATURALAR ============ */
+const TONE_LABELS = {radar:'Radar',siren:'Siren',bell:'Sakin Çan',nature:'Doğa Sesleri'};
+function openBillModal(){ document.getElementById('modalBill').classList.add('show'); }
+function saveBill(){
+  const name = document.getElementById('billName').value.trim();
+  const amount = parseFloat(document.getElementById('billAmount').value)||0;
+  const day = parseInt(document.getElementById('billDay').value)||1;
+  const tone = document.getElementById('billTone').value;
+  const persist = document.getElementById('billPersistToggle').classList.contains('on');
+  if(!name){ alert('Fatura adı gerekli'); return; }
+  const bill = {id:'b'+Date.now(), name, amount, day, tone, persist, paidMonths:[], notifId:null};
+  state.bills.push(bill);
+  save();
+  document.getElementById('billName').value='';
+  document.getElementById('billAmount').value='';
+  document.getElementById('billDay').value='';
+  closeModal('modalBill');
+  renderBills();
+  scheduleBillNative(bill);
+}
+function renderBills(){
+  const mk = monthKey();
+  const wrap = document.getElementById('billsWrap');
+  if(!state.bills.length){
+    wrap.innerHTML = '<div class="empty">Henüz düzenli fatura eklemedin.</div>';
+  } else {
+    wrap.innerHTML = state.bills.map(b=>{
+      const paid = b.paidMonths.includes(mk);
+      return `
+      <div class="card bill-card">
+        <div class="row top">
+          <div>
+            <h3>${escapeHtml(b.name)}</h3>
+            <div class="muted">Her ayın ${b.day}. günü tekrarlar</div>
+          </div>
+          <span class="pill ${paid?'green':''}">${paid?'Ödendi':'Bekliyor'}</span>
+        </div>
+        <div class="bill-amount">${b.amount.toLocaleString('tr-TR')} ₺</div>
+        <div class="row" style="margin-top:10px;">
+          <span style="font-size:13px;">Ben kapatana kadar çalsın (${TONE_LABELS[b.tone]||b.tone})</span>
+          <div class="toggle ${b.persist?'on':''}" onclick="toggleBillPersist('${b.id}')"></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button class="btn btn-sm btn-primary" onclick="markBillPaid('${b.id}')" ${paid?'disabled':''}>Ödendi işaretle</button>
+          <button class="btn btn-sm" onclick="testBillAlarm('${b.id}')">Alarmı dene</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteBill('${b.id}')">Sil</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const total = state.bills.filter(b=>!b.paidMonths.includes(mk)).reduce((s,b)=>s+b.amount,0);
+  document.getElementById('totalDue').textContent = total.toLocaleString('tr-TR')+' ₺';
+  const next = [...state.bills].filter(b=>!b.paidMonths.includes(mk)).sort((a,b)=>a.day-b.day)[0];
+  document.getElementById('nextDueLabel').textContent = next ? `İlk vade: ayın ${next.day}. günü — ${next.name}` : 'Bekleyen fatura yok';
+}
+function toggleBillPersist(id){
+  const b = state.bills.find(x=>x.id===id); b.persist = !b.persist; save(); renderBills();
+}
+function markBillPaid(id){
+  const b = state.bills.find(x=>x.id===id);
+  const mk = monthKey();
+  if(!b.paidMonths.includes(mk)) b.paidMonths.push(mk);
+  state.archive.push({id:'a'+Date.now(), type:'fatura', title:b.name, amount:b.amount, date:todayStr()});
+  save();
+  stopAlarm(true, true);
+  renderBills();
+}
+function deleteBill(id){
+  const b = state.bills.find(x=>x.id===id);
+  if(b) cancelBillNative(b);
+  state.bills = state.bills.filter(x=>x.id!==id);
+  save(); renderBills();
+}
+function testBillAlarm(id){
+  const b = state.bills.find(x=>x.id===id);
+  triggerLockAlarm({label:b.name, amount:b.amount.toLocaleString('tr-TR')+' ₺', tone:b.tone, billId:b.id});
+}
+
+/* Ayın belirlenen gününde otomatik kontrol (uygulama açıldığında tetiklenir) */
+function checkDueBillsToday(){
+  const now = new Date();
+  const mk = monthKey();
+  state.bills.forEach(b=>{
+    if(b.day===now.getDate() && !b.paidMonths.includes(mk)){
+      triggerLockAlarm({label:b.name, amount:b.amount.toLocaleString('tr-TR')+' ₺', tone:b.tone, billId:b.id});
+    }
+  });
+}
+
+/* ============ SES / ALARM MOTORU (Web Audio) ============ */
+let audioCtx = null, alarmNodes = null, alarmInterval = null, activeAlarmBillId = null;
+function ensureAudioCtx(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+
+function playToneLoop(kind){
+  const ctx = ensureAudioCtx();
+  stopToneNodes();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  gain.gain.value = 0.18;
+  if(kind==='siren'){ osc.type='sawtooth'; osc.frequency.value=440; }
+  else if(kind==='bell'){ osc.type='sine'; osc.frequency.value=880; }
+  else if(kind==='nature'){ osc.type='triangle'; osc.frequency.value=300; }
+  else { osc.type='square'; osc.frequency.value=520; } // radar / default
+  osc.start();
+  alarmNodes = {osc, gain, ctx};
+  if(kind==='siren' || kind==='radar' || !kind){
+    let up = true;
+    alarmInterval = setInterval(()=>{
+      if(!alarmNodes) return;
+      const base = kind==='siren' ? 440 : 520;
+      alarmNodes.osc.frequency.linearRampToValueAtTime(up?base*1.6:base, ctx.currentTime+0.4);
+      up = !up;
+    }, 420);
+  }
+}
+function stopToneNodes(){
+  if(alarmInterval){ clearInterval(alarmInterval); alarmInterval=null; }
+  if(alarmNodes){ try{ alarmNodes.osc.stop(); }catch(e){} alarmNodes=null; }
+}
+
+function triggerLockAlarm({label, amount, tone, billId}){
+  activeAlarmBillId = billId||null;
+  document.getElementById('lockLabel').textContent = label;
+  document.getElementById('lockAmount').textContent = amount || '';
+  document.getElementById('lockOverlay').classList.add('show');
+  updateLockClock();
+  playToneLoop(state.customTone ? 'custom' : (tone||state.defaultTone));
+  if(state.customTone){
+    stopToneNodes();
+    const a = new Audio(state.customTone);
+    a.loop = true; a.play().catch(()=>{});
+    alarmNodes = {customAudio:a};
+  }
+}
+function updateLockClock(){
+  const now = new Date();
+  document.getElementById('lockClock').textContent = now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('lockDate').textContent = now.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
+}
+function stopAlarm(markDone, skipUi){
+  if(alarmNodes && alarmNodes.customAudio){ alarmNodes.customAudio.pause(); alarmNodes=null; }
+  stopToneNodes();
+  if(!skipUi) document.getElementById('lockOverlay').classList.remove('show');
+  if(markDone && activeAlarmBillId){
+    markBillPaid(activeAlarmBillId);
+  }
+  activeAlarmBillId = null;
+}
+function testAlarm(){
+  triggerLockAlarm({label:'Test Alarmı', amount:'', tone:state.defaultTone});
+}
+
+/* ============ SESLİ ASİSTAN (Web Speech API) ============ */
+let recognition = null, listening = false;
+function setupRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return null;
+  const r = new SR();
+  r.lang = 'tr-TR';
+  r.continuous = false;
+  r.interimResults = false;
+  r.onresult = (e)=>{
+    const text = e.results[0][0].transcript;
+    document.getElementById('transcriptBox').textContent = '"'+text+'"';
+    document.getElementById('micStatusText').textContent = 'Algılandı: '+text;
+    parseVoiceCommand(text);
+  };
+  r.onend = ()=>{ listening=false; updateMicUI(); };
+  r.onerror = ()=>{ listening=false; updateMicUI(); document.getElementById('transcriptBox').textContent='Sesi algılayamadım, tekrar dener misin?'; };
+  return r;
+}
+function updateMicUI(){
+  document.getElementById('micBtnHome').classList.toggle('listening', listening);
+  document.getElementById('micBtnAssistant').classList.toggle('listening', listening);
+}
+function toggleListening(){
+  if(!state.perms.mic){ switchTab('asistan'); return; }
+  if(!recognition) recognition = setupRecognition();
+  if(!recognition){ alert('Bu tarayıcı/WebView sesli tanımayı desteklemiyor. Native APK sürümünde bu, cihazın konuşma tanıma motoruna bağlanmalı (bkz. README).'); return; }
+  if(listening){ recognition.stop(); listening=false; }
+  else { recognition.start(); listening=true; }
+  updateMicUI();
+}
+function parseVoiceCommand(text){
+  const t = text.toLowerCase();
+  const timeMatch = t.match(/(\d{1,2})[:. ]?(\d{2})?\s*(’|')?(e|’e|'e|ye|'ye|de|da)?/);
+  let hh = null;
+  const hourWord = t.match(/saat\s*(\d{1,2})/) || t.match(/(\d{1,2})[:\.](\d{2})/) || t.match(/(\d{1,2})\s*(?:'?[ea]|de|da)/);
+  if(hourWord) hh = parseInt(hourWord[1]);
+  const time = hh!=null ? String(hh).padStart(2,'0')+':00' : '09:00';
+  let title = text;
+  if(/fatura/.test(t)) title = 'Fatura: '+text;
+  state.tasks.push({id:'t'+Date.now(), title, time, note:'Sesle eklendi', date:todayStr(), done:false});
+  save();
+  renderToday();
+}
+function quickCommand(kind){
+  if(kind==='bill'){
+    const b = state.bills[0];
+    if(b) markBillPaid(b.id); else alert('Önce bir fatura ekle.');
+  } else {
+    state.tasks.push({id:'t'+Date.now(), title:'Diş randevusu', time:'15:30', note:'Hızlı komutla eklendi', date:todayStr(), done:false});
+    save(); renderToday(); switchTab('bugun');
+  }
+}
+
+/* ============ İZİNLER ============ */
+function requestMicPermission(){
+  navigator.mediaDevices?.getUserMedia({audio:true}).then(stream=>{
+    stream.getTracks().forEach(t=>t.stop());
+    state.perms.mic = true; save();
+    updatePermUI();
+    if(Notification && Notification.permission!=='granted'){
+      Notification.requestPermission().then(p=>{
+        state.perms.notif = (p==='granted'); save(); updatePermUI();
+      });
+    }
+  }).catch(()=>{
+    alert('İzin verilmedi. Tarayıcı/telefon ayarlarından Vokalis için mikrofon erişimini açman gerekiyor.');
+  });
+}
+function togglePerm(kind){
+  if(kind==='mic'){ requestMicPermission(); return; }
+  if(kind==='notif'){
+    if(Native && LN){
+      requestNativeNotifPermission().then(granted=>{ state.perms.notif = granted; save(); updatePermUI(); });
+    } else if(window.Notification){
+      Notification.requestPermission().then(p=>{ state.perms.notif=(p==='granted'); save(); updatePermUI(); });
+    }
+    return;
+  }
+  if(kind==='alarm'){
+    // "kesintisiz alarm" izni: native tarafta bu, bildirim izninin bir parçasıdır
+    state.perms.alarm = !state.perms.alarm;
+    save(); updatePermUI();
+    return;
+  }
+  state.perms[kind] = !state.perms[kind];
+  save(); updatePermUI();
+}
+function updatePermUI(){
+  document.getElementById('permMicToggle').classList.toggle('on', state.perms.mic);
+  document.getElementById('permNotifToggle').classList.toggle('on', state.perms.notif);
+  document.getElementById('permAlarmToggle').classList.toggle('on', state.perms.alarm);
+  const banner = document.getElementById('micPermBanner');
+  if(state.perms.mic){
+    banner.classList.add('ok');
+    document.getElementById('micPermTitle').textContent = 'Mikrofon aktif';
+    document.getElementById('micPermDesc').textContent = 'Sesli komutlar kullanıma hazır.';
+    document.getElementById('micPermBtn').textContent = 'Yeniden Kontrol Et';
+  } else {
+    banner.classList.remove('ok');
+    document.getElementById('micPermTitle').textContent = 'Mikrofon izni gerekli';
+    document.getElementById('micPermDesc').textContent = 'Sesle hatırlatıcı ekleyebilmek için mikrofon erişimine izin ver.';
+    document.getElementById('micPermBtn').textContent = 'İzin Ver & Etkinleştir';
+  }
+}
+
+/* ============ PROFİL ============ */
+function openProfile(){ document.getElementById('modalProfile').classList.add('show'); }
+function handleAvatarUpload(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    state.profile.avatar = reader.result; save(); renderProfile();
+  };
+  reader.readAsDataURL(file);
+}
+function renderProfile(){
+  if(state.profile.avatar){
+    document.getElementById('avatarImg').src = state.profile.avatar;
+    document.getElementById('avatarImg').style.display='block';
+    document.getElementById('avatarPlaceholder').style.display='none';
+    document.getElementById('profileAvatarImg').src = state.profile.avatar;
+    document.getElementById('profileAvatarImg').style.display='block';
+  }
+  document.getElementById('profileName').textContent = state.profile.name;
+}
+
+/* ============ TON SEÇİMİ ============ */
+const TONES = ['radar','siren','bell','nature'];
+function renderToneGrid(){
+  const el = document.getElementById('toneGridGlobal');
+  el.innerHTML = TONES.map(t=>`<div class="tone-opt ${state.defaultTone===t?'selected':''}" onclick="setDefaultTone('${t}')">${TONE_LABELS[t]}</div>`).join('');
+}
+function setDefaultTone(t){ state.defaultTone=t; state.customTone=null; save(); renderToneGrid(); }
+function handleCustomTone(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ state.customTone = reader.result; save(); alert('Özel ses kaydedildi ve varsayılan yapıldı.'); renderToneGrid(); };
+  reader.readAsDataURL(file);
+}
+
+/* ============ ARŞİV / GECE 00:00 OTOMASYONU ============ */
+let archiveOffset = 0;
+function setArchiveMonth(offset, btn){
+  archiveOffset = offset;
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderArchive();
+}
+function renderArchive(){
+  const d = new Date(); d.setMonth(d.getMonth()+archiveOffset);
+  const mk = d.toISOString().slice(0,7);
+  const items = state.archive.filter(a=>a.date.slice(0,7)===mk);
+  const totalFatura = items.filter(a=>a.type==='fatura').reduce((s,a)=>s+(a.amount||0),0);
+  document.getElementById('archiveSummaryCard').innerHTML = `
+    <h3>${d.toLocaleDateString('tr-TR',{month:'long', year:'numeric'})} özeti</h3>
+    <div class="row" style="margin-top:8px;">
+      <span class="pill">${items.filter(a=>a.type==='gorev').length} görev</span>
+      <span class="pill green">${items.filter(a=>a.type==='fatura').length} fatura ödendi</span>
+      <span class="pill">${totalFatura.toLocaleString('tr-TR')} ₺</span>
+    </div>
+  `;
+  const list = document.getElementById('archiveList');
+  list.innerHTML = items.length ? items.map(a=>`
+    <div class="card row">
+      <div>
+        <div style="font-weight:600;">${escapeHtml(a.title)}</div>
+        <div class="muted">${a.date}</div>
+      </div>
+      ${a.amount?`<div class="bill-amount" style="font-size:15px;">${a.amount.toLocaleString('tr-TR')} ₺</div>`:''}
+    </div>
+  `).join('') : '<div class="empty">Bu ay için kayıt yok.</div>';
+}
+function exportData(fmt){
+  const items = state.archive;
+  let blob, filename;
+  if(fmt==='json'){
+    blob = new Blob([JSON.stringify(items,null,2)], {type:'application/json'});
+    filename = 'vokalis-arsiv.json';
+  } else {
+    const rows = ['tip,baslik,tutar,tarih', ...items.map(a=>`${a.type},"${a.title}",${a.amount||0},${a.date}`)];
+    blob = new Blob([rows.join('\n')], {type:'text/csv'});
+    filename = 'vokalis-arsiv.csv';
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Gece 00:00 kuralı: uygulama her açıldığında, son çalışmadan bu yana geçen
+   günlerdeki tamamlanan görevleri arşive taşır ve günü sıfırlar. */
+function runMidnightRolloverIfNeeded(){
+  const last = state.lastArchiveRun;
+  const today = todayStr();
+  if(last === today) return;
+  // dünün ve öncesinin tamamlanmış görevlerini arşive taşı
+  state.tasks.filter(t=>t.date!==today && t.done).forEach(t=>{
+    state.archive.push({id:'a'+t.id, type:'gorev', title:t.title, amount:null, date:t.date});
+  });
+  state.tasks = state.tasks.filter(t=>t.date===today || !t.done);
+  // yeni ay başladıysa fatura paidMonths otomatik olarak monthKey ile zaten ayrışıyor
+  state.lastArchiveRun = today;
+  save();
+}
+
+/* ============ BAŞLANGIÇ ============ */
+async function init(){
+  runMidnightRolloverIfNeeded();
+  renderQuickHours();
+  renderToday();
+  renderBills();
+  renderToneGrid();
+  updatePermUI();
+  renderProfile();
+  checkDueBillsToday();
+  setInterval(()=>{ if(document.getElementById('lockOverlay').classList.contains('show')) updateLockClock(); }, 1000);
+  setInterval(runMidnightRolloverIfNeeded, 60*1000);
+
+  await initNativeAlarms();
+  if(Native && LN){
+    // Uygulama telefonda (APK) çalışıyorsa, kayıtlı tüm faturalar için native alarmları tazele.
+    state.bills.forEach(b => scheduleBillNative(b));
+  }
+}
+init();
+</script>
+</body>
+</html>
